@@ -6,7 +6,7 @@ auto main() -> int
 {
     if (!CupsPrinter::GetPrinters()
            .and_then(
-             [](const auto& printers) -> std::expected<std::vector<CupsPrinter>, CupsError>
+             [](const auto& printers) -> std::expected<void, CupsError>
              {
                  for (const auto& printer : printers)
                  {
@@ -17,7 +17,7 @@ auto main() -> int
                        printer.getOptions()
                      );
                  }
-                 return printers;
+                 return std::expected<void, CupsError>{};
              }
            )
            .transform_error(
@@ -32,6 +32,13 @@ auto main() -> int
     }
 
     if (!CupsPrinter::GetDefaultPrinter()
+           .transform(
+             [](const auto& printer)
+             {
+                 std::println("Printing on: {}", printer.getName());
+                 return printer;
+             }
+           )
            .and_then(
              [](const auto& printer)
              {
