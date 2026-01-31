@@ -115,7 +115,17 @@ auto CupsPrinter::print(const std::string& jobName, const std::string& data, con
         std::unreachable();
     }();
 
-    JobGuard jg{JOB_ID, ptr_destName}; // cancels job on destruction, unless .dismiss() has been called.
+    const auto JOB_DELETER = [ptr_destName](const int* const ptr_jobId)
+    {
+        if (ptr_jobId)
+        {
+            cupsCancelJob(ptr_destName, *ptr_jobId);
+        }
+        delete ptr_jobId;
+    };
+
+    // cancels job on destruction, unless .dismiss() has been called.
+    std::unique_ptr<int, decltype(JOB_DELETER)> jobGuard {new int(JOB_ID), JOB_DELETER};
 
     static constexpr bool IS_LAST_DOCUMENT_IN_JOB = true; // last_document being an int, like some kind of id. Great name, too. I hate C-APIs.
     if (cupsStartDocument(CUPS_HTTP_DEFAULT, ptr_destName, JOB_ID, "doc", ptr_formatString, static_cast<int>(IS_LAST_DOCUMENT_IN_JOB)) != HTTP_CONTINUE)
@@ -134,6 +144,6 @@ auto CupsPrinter::print(const std::string& jobName, const std::string& data, con
         return std::unexpected<CupsError>{ std::in_place, std::move(err) };
     }
 
-    jg.dismiss();
+    delete jobGuard.release();
     return {};
 }

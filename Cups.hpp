@@ -30,48 +30,6 @@ class CupsPrinter
     [[nodiscard]]
     auto buildName() const -> std::string;
 
-    class JobGuard
-    {
-      private:
-        int         m_jobId;
-        std::string m_name;
-        bool        m_isArmed;
-
-      public:
-        JobGuard()                       = delete;
-        JobGuard(const JobGuard&)        = delete;
-        JobGuard(JobGuard&& other) noexcept
-                : m_jobId {other.m_jobId}, m_name {std::move(other.m_name)}, m_isArmed {std::exchange(other.m_isArmed, false)}
-        {
-            // empty
-        }
-
-        void operator= (const JobGuard&) = delete;
-        auto operator= (JobGuard&& other) noexcept -> JobGuard&
-        {
-            if (&other == this)
-            {
-                return *this;
-            }
-            m_jobId = other.m_jobId;
-            m_name  = std::move(other.m_name);
-            m_isArmed = std::exchange(other.m_isArmed, false);
-            return *this;
-        }
-        JobGuard(int jobId, std::string_view name) : m_jobId {jobId}, m_name {name}, m_isArmed {true}
-        {
-            // empty
-        }
-        ~JobGuard()
-        {
-            if (m_jobId > 0 && m_isArmed)
-            {
-                cupsCancelJob(m_name.c_str(), m_jobId);
-            }
-        }
-        void dismiss() { m_isArmed = false; }
-    };
-
   public:
     enum class EFormat : std::uint8_t
     {
